@@ -1,9 +1,0 @@
-[0m[1mvar.db_password[0m
-  Mot de passe pour PostgreSQL (à fournir via terraform.tfvars ou variable d'environnement)
-
-  [1mEnter a value:[0m [0m
-
-Interrupt received.
-Please wait for Terraform to exit or data loss may occur.
-Gracefully shutting down...
-
