@@ -202,12 +202,10 @@ resource "aws_eks_node_group" "main" {
   # capacity_type  = "ON_DEMAND"
 
   scaling_config {
-    desired_size = var.desired_size
-    max_size     = var.max_size
-    min_size     = var.min_size
+    desired_size = var.node_desired_size
+    max_size     = var.node_max_size
+    min_size     = var.node_min_size
   }
-
-  instance_types = ["t3.micro"]
 
   update_config {
     max_unavailable = 1
