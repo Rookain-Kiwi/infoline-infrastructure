@@ -198,8 +198,8 @@ resource "aws_eks_node_group" "main" {
   subnet_ids      = var.private_subnet_ids
 
   instance_types = var.node_instance_types
-  # ON_DEMAND provoque un faux positif lors de la création de l'aws_eks_node_group
-  # capacity_type  = "ON_DEMAND"
+  # ON_DEMAND provoque un faux positif lors de la création de l'aws_eks_node_group: on passe en SPOT
+  capacity_type  = "SPOT"
 
   scaling_config {
     desired_size = var.node_desired_size
