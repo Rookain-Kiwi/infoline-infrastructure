@@ -198,13 +198,16 @@ resource "aws_eks_node_group" "main" {
   subnet_ids      = var.private_subnet_ids
 
   instance_types = var.node_instance_types
-  capacity_type  = "ON_DEMAND"
+  # ON_DEMAND provoque un faux positif lors de la création de l'aws_eks_node_group
+  # capacity_type  = "ON_DEMAND"
 
   scaling_config {
-    desired_size = var.node_desired_size
-    max_size     = var.node_max_size
-    min_size     = var.node_min_size
+    desired_size = var.desired_size
+    max_size     = var.max_size
+    min_size     = var.min_size
   }
+
+  instance_types = ["t3.micro"]
 
   update_config {
     max_unavailable = 1
