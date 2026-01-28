@@ -84,3 +84,4 @@ if [ "$TOTAL_ISSUES" = "0" ]; then
   echo "✅ Infrastructure complètement détruite"
 else
   echo "⚠️  $TOTAL_ISSUES ressource(s) encore active(s)"
+fi
