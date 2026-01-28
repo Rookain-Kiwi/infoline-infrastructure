@@ -61,3 +61,42 @@ output "deployment_info" {
     nodes_deployed = "${var.node_desired_size} worker nodes"
   }
 }
+
+# ============================================================================
+# Outputs - RDS PostgreSQL
+# ============================================================================
+
+output "rds_endpoint" {
+  description = "RDS instance connection endpoint"
+  value       = module.rds.db_instance_endpoint
+}
+
+output "rds_address" {
+  description = "RDS instance hostname"
+  value       = module.rds.db_instance_address
+}
+
+output "rds_port" {
+  description = "RDS instance port"
+  value       = module.rds.db_instance_port
+}
+
+output "rds_database_name" {
+  description = "Name of the default database"
+  value       = module.rds.db_name
+}
+
+output "rds_connection_string" {
+  description = "JDBC connection string for Java applications"
+  value       = module.rds.db_connection_string
+}
+
+output "rds_connection_url" {
+  description = "PostgreSQL connection URL"
+  value       = module.rds.db_connection_url
+}
+
+output "rds_security_group_id" {
+  description = "RDS security group ID"
+  value       = module.rds.db_security_group_id
+}

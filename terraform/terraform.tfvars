@@ -21,6 +21,17 @@ node_desired_size   = 2
 node_min_size       = 1
 node_max_size       = 3
 
+# RDS - Database Credentials
+db_name     = "infoline"
+db_username = "infoline_admin"
+db_password = "Infadm1N"
+
+# RDS - Configuration Instance
+db_instance_class           = "db.t3.micro"      # Free Tier
+db_allocated_storage        = 20                  # Free Tier: 20GB
+db_max_allocated_storage    = 30                  # Autoscaling max
+db_backup_retention_period  = 0                   # Free Tier: le backup_retention_period n'est pas compatible
+
 # Tags
 tags = {
   Project     = "InfoLine"
