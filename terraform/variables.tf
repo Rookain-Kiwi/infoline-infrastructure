@@ -82,31 +82,6 @@ variable "node_max_size" {
   default     = 4
 }
 
-variable "db_instance_class" {
-  description = "Classe d'instance pour RDS PostgreSQL"
-  type        = string
-  default     = "db.t3.micro"
-}
-
-variable "db_name" {
-  description = "Nom de la base de données PostgreSQL"
-  type        = string
-  default     = "infoline"
-}
-
-variable "db_username" {
-  description = "Nom d'utilisateur pour PostgreSQL"
-  type        = string
-  default     = "infoline_admin"
-  sensitive   = true
-}
-
-variable "db_password" {
-  description = "Mot de passe pour PostgreSQL (à fournir via terraform.tfvars ou variable d'environnement)"
-  type        = string
-  sensitive   = true
-}
-
 variable "lambda_runtime" {
   description = "Runtime pour les fonctions Lambda"
   type        = string
@@ -117,4 +92,49 @@ variable "tags" {
   description = "Tags additionnels pour toutes les ressources"
   type        = map(string)
   default     = {}
+}
+
+# RDS Database Configuration
+
+variable "db_name" {
+  description = "Name of the PostgreSQL database"
+  type        = string
+  default     = "infoline"
+}
+
+variable "db_username" {
+  description = "Master username for PostgreSQL"
+  type        = string
+  default     = "infoline_admin"
+  sensitive   = true
+}
+
+variable "db_password" {
+  description = "Master password for PostgreSQL (use environment variable or secrets manager)"
+  type        = string
+  sensitive   = true
+}
+
+variable "db_instance_class" {
+  description = "RDS instance type (Free Tier: db.t3.micro)"
+  type        = string
+  default     = "db.t3.micro"
+}
+
+variable "db_allocated_storage" {
+  description = "Initial allocated storage in GB (Free Tier: 20GB)"
+  type        = number
+  default     = 20
+}
+
+variable "db_max_allocated_storage" {
+  description = "Maximum storage for autoscaling in GB"
+  type        = number
+  default     = 30
+}
+
+variable "db_backup_retention_period" {
+  description = "Number of days to retain backups (Free Tier: up to 7 days)"
+  type        = number
+  default     = 7
 }
