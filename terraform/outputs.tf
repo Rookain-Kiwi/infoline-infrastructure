@@ -100,3 +100,22 @@ output "rds_security_group_id" {
   description = "RDS security group ID"
   value       = module.rds.db_security_group_id
 }
+
+# ============================================================================
+# Outputs - ECR
+# ============================================================================
+
+output "ecr_backend_repository_url" {
+  description = "URL du repository ECR backend"
+  value       = module.ecr.repository_url
+}
+
+output "ecr_backend_repository_name" {
+  description = "Nom du repository ECR backend"
+  value       = module.ecr.repository_name
+}
+
+output "ecr_backend_registry_id" {
+  description = "Registry ID du repository ECR"
+  value       = module.ecr.registry_id
+}
