@@ -76,3 +76,10 @@ module "rds" {
     Component = "Database"
   }
 }
+# Module ECR pour les images Docker
+module "ecr" {
+  source = "./modules/ecr"
+
+  environment  = var.environment
+  project_name = var.project_name
+}
