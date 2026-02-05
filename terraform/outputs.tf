@@ -1,7 +1,6 @@
 # ============================================================================
 # Outputs - VPC + EKS
 # ============================================================================
-
 # VPC Outputs
 output "vpc_id" {
   description = "ID du VPC"
@@ -44,13 +43,11 @@ output "eks_node_security_group_id" {
   value       = module.eks.node_security_group_id
 }
 
-# Commande pour configurer kubectl
 output "configure_kubectl" {
   description = "Commande pour configurer kubectl"
   value       = "aws eks update-kubeconfig --region ${var.aws_region} --name ${module.eks.cluster_name}"
 }
 
-# Informations de déploiement résumées
 output "deployment_info" {
   description = "Informations résumées pour Phase 1"
   value = {
@@ -65,7 +62,6 @@ output "deployment_info" {
 # ============================================================================
 # Outputs - RDS PostgreSQL
 # ============================================================================
-
 output "rds_endpoint" {
   description = "RDS instance connection endpoint"
   value       = module.rds.db_instance_endpoint
@@ -102,9 +98,8 @@ output "rds_security_group_id" {
 }
 
 # ============================================================================
-# Outputs - ECR
+# Outputs - ECR Backend
 # ============================================================================
-
 output "ecr_backend_repository_url" {
   description = "URL du repository ECR backend"
   value       = module.ecr.repository_url
@@ -118,4 +113,17 @@ output "ecr_backend_repository_name" {
 output "ecr_backend_registry_id" {
   description = "Registry ID du repository ECR"
   value       = module.ecr.registry_id
+}
+
+# ============================================================================
+# Outputs - ECR Frontend
+# ============================================================================
+output "ecr_frontend_repository_url" {
+  description = "URL du repository ECR frontend"
+  value       = module.ecr.frontend_repository_url
+}
+
+output "ecr_frontend_repository_name" {
+  description = "Nom du repository ECR frontend"
+  value       = module.ecr.frontend_repository_name
 }
