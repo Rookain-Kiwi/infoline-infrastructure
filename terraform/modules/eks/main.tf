@@ -247,21 +247,19 @@ resource "aws_iam_openid_connect_provider" "cluster" {
   )
 }
 
-# Add-on EBS CSI Driver (pour les volumes persistants)
-resource "aws_eks_addon" "ebs_csi_driver" {
-  cluster_name = aws_eks_cluster.main.name
-  addon_name   = "aws-ebs-csi-driver"
-
-  depends_on = [
-    aws_eks_node_group.main
-  ]
-}
+# Add-on EBS CSI Driver (désactivé - non nécessaire pour ce projet et consomme trop de pods pour un Free Tier)
+# resource "aws_eks_addon" "ebs_csi_driver" {
+#   cluster_name = aws_eks_cluster.main.name
+#   addon_name   = "aws-ebs-csi-driver"
+#   depends_on = [
+#     aws_eks_node_group.main
+#   ]
+# }
 
 # Add-on CoreDNS
 resource "aws_eks_addon" "coredns" {
   cluster_name = aws_eks_cluster.main.name
   addon_name   = "coredns"
-
   depends_on = [
     aws_eks_node_group.main
   ]
@@ -271,7 +269,6 @@ resource "aws_eks_addon" "coredns" {
 resource "aws_eks_addon" "kube_proxy" {
   cluster_name = aws_eks_cluster.main.name
   addon_name   = "kube-proxy"
-
   depends_on = [
     aws_eks_node_group.main
   ]
@@ -281,7 +278,6 @@ resource "aws_eks_addon" "kube_proxy" {
 resource "aws_eks_addon" "vpc_cni" {
   cluster_name = aws_eks_cluster.main.name
   addon_name   = "vpc-cni"
-
   depends_on = [
     aws_eks_node_group.main
   ]
