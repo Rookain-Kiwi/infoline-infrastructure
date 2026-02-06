@@ -34,7 +34,7 @@ terraform apply tfplan
 # Configuration kubectl
 echo ""
 echo "⚙️  Configuration kubectl..."
-aws eks update-kubeconfig --region eu-west-3 --name infoline-dev-cluster
+aws eks update-kubeconfig --region eu-west-3 --name infoline-eks-cluster
 
 # Application des namespaces
 echo "📦 Création des namespaces Kubernetes..."
@@ -70,7 +70,7 @@ echo "✅ Infrastructure démarrée avec succès"
 echo ""
 echo "📊 Résumé de l'infrastructure :"
 echo "   🌐 VPC : infoline-dev-vpc"
-echo "   ☸️  Cluster EKS : infoline-dev-cluster"
+echo "   ☸️  Cluster EKS : infoline-eks-cluster"
 echo "   🗄️  RDS PostgreSQL : infoline-dev-postgres"
 echo "   📍 Région : eu-west-3"
 echo "   🖥️  Nœuds EKS : $(kubectl get nodes --no-headers | wc -l)"
