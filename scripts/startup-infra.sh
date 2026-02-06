@@ -40,6 +40,32 @@ aws eks update-kubeconfig --region eu-west-3 --name infoline-eks-cluster
 echo "📦 Création des namespaces Kubernetes..."
 kubectl apply -f "${K8S_DIR}/namespaces/"
 
+# Installation EBS CSI Driver via Helm
+echo ""
+echo "📦 Installation du driver EBS CSI via Helm..."
+
+# Vérifier si Helm est installé
+if ! command -v helm &> /dev/null; then
+    echo "⚠️  Helm non trouvé, installation..."
+    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+fi
+
+# Ajouter le repo et installer
+helm repo add aws-ebs-csi-driver https://kubernetes-sigs.github.io/aws-ebs-csi-driver 2>/dev/null || true
+helm repo update
+
+echo "🚀 Déploiement du driver EBS CSI..."
+helm upgrade --install aws-ebs-csi-driver \
+  aws-ebs-csi-driver/aws-ebs-csi-driver \
+  --namespace kube-system || echo "⚠️  Installation EBS CSI échouée, continuons..."
+
+# Vérification
+echo "✅ Vérification du driver EBS CSI..."
+kubectl get pods -n kube-system -l app.kubernetes.io/name=aws-ebs-csi-driver
+kubectl get csidriver ebs.csi.aws.com 2>/dev/null && echo "✅ EBS CSI Driver opérationnel" || echo "⚠️  EBS CSI Driver non trouvé"
+
+echo ""
+
 # Récupération des informations RDS
 echo ""
 echo "🗄️  Informations de connexion RDS PostgreSQL:"
