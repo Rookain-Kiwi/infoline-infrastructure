@@ -247,14 +247,14 @@ resource "aws_iam_openid_connect_provider" "cluster" {
   )
 }
 
-# Add-on EBS CSI Driver (désactivé - non nécessaire pour ce projet et consomme trop de pods pour un Free Tier)
-# resource "aws_eks_addon" "ebs_csi_driver" {
-#   cluster_name = aws_eks_cluster.main.namecd 
-#   addon_name   = "aws-ebs-csi-driver"
-#   depends_on = [
-#     aws_eks_node_group.main
-#   ]
-# }
+# Add-on EBS CSI Driver
+ resource "aws_eks_addon" "ebs_csi_driver" {
+   cluster_name = aws_eks_cluster.main.namecd 
+   addon_name   = "aws-ebs-csi-driver"
+   depends_on = [
+     aws_eks_node_group.main
+   ]
+ }
 
 # Add-on CoreDNS
 resource "aws_eks_addon" "coredns" {

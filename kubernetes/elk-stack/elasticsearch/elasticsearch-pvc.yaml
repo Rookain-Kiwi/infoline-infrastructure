@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: elasticsearch-data
+  namespace: elk-stack
+  labels:
+    app: elasticsearch
+    component: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp2  # EBS gp2 (Free Tier compatible)
+  resources:
+    requests:
+      storage: 5Gi  # 5GB suffisant pour 3 jours de logs
