@@ -48,3 +48,8 @@ output "node_role_arn" {
   description = "ARN du rôle IAM des nodes"
   value       = aws_iam_role.node.arn
 }
+
+output "ebs_csi_driver_role_arn" {
+  description = "ARN du rôle IAM pour EBS CSI Driver"
+  value       = aws_iam_role.ebs_csi_driver.arn
+}

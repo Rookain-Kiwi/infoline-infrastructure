@@ -127,3 +127,11 @@ output "ecr_frontend_repository_name" {
   description = "Nom du repository ECR frontend"
   value       = module.ecr.frontend_repository_name
 }
+
+# ============================================================================
+# Outputs - EBS CSI Driver
+# ============================================================================
+output "ebs_csi_driver_role_arn" {
+  description = "ARN du rôle IAM pour EBS CSI Driver"
+  value       = module.eks.ebs_csi_driver_role_arn
+}

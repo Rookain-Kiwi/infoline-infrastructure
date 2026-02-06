@@ -54,10 +54,17 @@ fi
 helm repo add aws-ebs-csi-driver https://kubernetes-sigs.github.io/aws-ebs-csi-driver 2>/dev/null || true
 helm repo update
 
-echo "🚀 Déploiement du driver EBS CSI..."
+# Récupérer l'ARN du rôle IAM EBS CSI
+cd "${TERRAFORM_DIR}" || exit 1
+EBS_CSI_ROLE_ARN=$(terraform output -raw ebs_csi_driver_role_arn)
+cd "${PROJECT_ROOT}" || exit 1
+
+echo "🚀 Déploiement du driver EBS CSI avec rôle IAM..."
 helm upgrade --install aws-ebs-csi-driver \
   aws-ebs-csi-driver/aws-ebs-csi-driver \
-  --namespace kube-system || echo "⚠️  Installation EBS CSI échouée, continuons..."
+  --namespace kube-system \
+  --set controller.serviceAccount.annotations."eks\.amazonaws\.com/role-arn"="${EBS_CSI_ROLE_ARN}" \
+  || echo "⚠️  Installation EBS CSI échouée, continuons..."
 
 # Vérification
 echo "✅ Vérification du driver EBS CSI..."
