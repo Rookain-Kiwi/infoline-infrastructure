@@ -46,7 +46,7 @@ spec:
         - name: discovery.type
           value: "single-node"
         - name: ES_JAVA_OPTS
-          value: "-Xms512m -Xmx512m"  # ← Au lieu de 128m-256m
+          value: "-Xms512m -Xmx512m"
         - name: xpack.security.enabled
           value: "false"
         - name: xpack.security.enrollment.enabled
@@ -59,15 +59,20 @@ spec:
           value: "false"
         resources:
           requests:
-            memory: "1Gi"     # ← Au lieu de 384Mi
-            cpu: "500m"       # ← Au lieu de 200m
+            memory: "1Gi"
+            cpu: "500m"
           limits:
-            memory: "1Gi"     # ← Au lieu de 512Mi
-            cpu: "1000m"      # ← Au lieu de 500m
+            memory: "1Gi"
+            cpu: "1000m"
         volumeMounts:
         - name: elasticsearch-data
           mountPath: /usr/share/elasticsearch/data
-      volumes:
-      - name: elasticsearch-data
-        persistentVolumeClaim:
-          claimName: elasticsearch-data
+  volumeClaimTemplates:
+  - metadata:
+      name: elasticsearch-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: gp2
+      resources:
+        requests:
+          storage: 5Gi
