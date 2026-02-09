@@ -73,6 +73,12 @@ kubectl get csidriver ebs.csi.aws.com 2>/dev/null && echo "✅ EBS CSI Driver op
 
 echo ""
 
+# Création du namespace elk-stack pour la supervision
+echo ""
+echo "📦 Création du namespace elk-stack pour la supervision..."
+kubectl create namespace elk-stack || echo "   ℹ️  Namespace elk-stack existe déjà"
+echo "✅ Namespace elk-stack créé"
+
 # Récupération des informations RDS
 echo ""
 echo "🗄️  Informations de connexion RDS PostgreSQL:"
