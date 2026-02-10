@@ -63,21 +63,26 @@ echo "🚀 Déploiement du driver EBS CSI avec rôle IAM..."
 helm upgrade --install aws-ebs-csi-driver \
   aws-ebs-csi-driver/aws-ebs-csi-driver \
   --namespace kube-system \
-  --set controller.serviceAccount.annotations."eks\.amazonaws\.com/role-arn"="${EBS_CSI_ROLE_ARN}" \
-  || echo "⚠️  Installation EBS CSI échouée, continuons..."
+  --set controller.serviceAccount.annotations."eks\.amazonaws\.com/role-arn"="${EBS_CSI_ROLE_ARN}"
 
-# Vérification
-echo "✅ Vérification du driver EBS CSI..."
-kubectl get pods -n kube-system -l app.kubernetes.io/name=aws-ebs-csi-driver
-kubectl get csidriver ebs.csi.aws.com 2>/dev/null && echo "✅ EBS CSI Driver opérationnel" || echo "⚠️  EBS CSI Driver non trouvé"
-
+# Vérification EBS CSI Driver
 echo ""
+echo "✅ Vérification du driver EBS CSI..."
+echo "⏳ Attente du démarrage des pods EBS CSI (30 secondes)..."
+sleep 30
+
+kubectl get pods -n kube-system -l app.kubernetes.io/name=aws-ebs-csi-driver
+
+if kubectl get csidriver ebs.csi.aws.com &> /dev/null; then
+    echo "✅ EBS CSI Driver opérationnel"
+else
+    echo "❌ EBS CSI Driver non trouvé - vérification manuelle requise"
+fi
 
 # Création du namespace elk-stack pour la supervision
 echo ""
 echo "📦 Création du namespace elk-stack pour la supervision..."
-kubectl create namespace elk-stack || echo "   ℹ️  Namespace elk-stack existe déjà"
-echo "✅ Namespace elk-stack créé"
+kubectl create namespace elk-stack 2>/dev/null && echo "✅ Namespace elk-stack créé" || echo "ℹ️  Namespace elk-stack existe déjà"
 
 # Récupération des informations RDS
 echo ""
@@ -92,9 +97,9 @@ echo "   - Endpoint: $RDS_ENDPOINT"
 echo "   - Database: $RDS_DATABASE"
 echo "   - JDBC URL: $RDS_CONNECTION"
 echo "   - Username: infoline_admin"
-echo ""
 
 # Vérifications
+echo ""
 echo "🔍 Vérification de l'infrastructure..."
 kubectl get nodes
 echo ""
@@ -102,7 +107,7 @@ kubectl get namespaces
 
 # Logs
 mkdir -p "${LOG_DIR}"
-echo "$(date +%Y-%m-%d_%H:%M:%S) - Infrastructure recréée (VPC + EKS + RDS)" >> "${LOG_DIR}/infrastructure.log"
+echo "$(date +%Y-%m-%d_%H:%M:%S) - Infrastructure recréée (VPC + EKS + RDS + EBS CSI + elk-stack)" >> "${LOG_DIR}/infrastructure.log"
 
 echo ""
 echo "✅ Infrastructure démarrée avec succès"
@@ -111,6 +116,8 @@ echo "📊 Résumé de l'infrastructure :"
 echo "   🌐 VPC : infoline-dev-vpc"
 echo "   ☸️  Cluster EKS : infoline-eks-cluster"
 echo "   🗄️  RDS PostgreSQL : infoline-dev-postgres"
+echo "   💾 EBS CSI Driver : installé"
+echo "   📦 Namespace elk-stack : créé"
 echo "   📍 Région : eu-west-3"
 echo "   🖥️  Nœuds EKS : $(kubectl get nodes --no-headers | wc -l)"
 echo "   📦 Namespaces : $(kubectl get namespaces --no-headers | wc -l)"
