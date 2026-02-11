@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: infoline-backend
+  labels:
+    app: backend
+    component: application
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: infoline-frontend
+  labels:
+    app: frontend
+    component: application
