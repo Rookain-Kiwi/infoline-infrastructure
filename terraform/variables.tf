@@ -61,7 +61,7 @@ variable "database_subnet_cidrs" {
 variable "node_instance_types" {
   description = "Types d'instances pour les worker nodes EKS"
   type        = list(string)
-  default     = ["t3.small"]
+  default     = ["t3.medium"]
 }
 
 variable "node_desired_size" {

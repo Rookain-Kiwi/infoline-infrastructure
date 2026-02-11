@@ -16,7 +16,7 @@ cluster_name    = "infoline-eks-cluster"
 cluster_version = "1.31"
 
 # EKS Nodes - t3.micro pour Free Tier
-node_instance_types = ["t3.small"]
+node_instance_types = ["t3.medium"]
 node_desired_size   = 2
 node_min_size       = 1
 node_max_size       = 3
