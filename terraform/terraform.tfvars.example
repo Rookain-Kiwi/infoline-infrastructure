@@ -24,7 +24,7 @@ node_max_size       = 3
 # RDS - Database Credentials
 db_name     = "infoline"
 db_username = "infoline_admin"
-db_password = "Infadm1N"
+db_password = "CHANGEZ MOI"
 
 # RDS - Configuration Instance
 db_instance_class           = "db.t3.micro"      # Free Tier
