@@ -84,3 +84,11 @@ module "ecr" {
   environment  = var.environment
   project_name = var.project_name
 }
+# Module Lambda - Service d'authentification serverless
+module "lambda" {
+  source = "./modules/lambda"
+
+  project_name = var.project_name
+  environment  = var.environment
+  tags         = var.tags
+}

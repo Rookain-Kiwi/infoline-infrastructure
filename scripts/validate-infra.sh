@@ -65,7 +65,7 @@ done
 echo ""
 echo "💾 EBS CSI Driver :"
 EBS_RUNNING=$(kubectl get pods -n kube-system -l app.kubernetes.io/name=aws-ebs-csi-driver \
-    --no-headers 2>/dev/null | grep -c "Running" || echo "0")
+    --no-headers 2>/dev/null | grep -c "Running" 2>/dev/null); FRONTEND_RUNNING=${FRONTEND_RUNNING:-0}
 if [ "$EBS_RUNNING" -ge 4 ]; then
     check_pass "EBS CSI Driver: $EBS_RUNNING pods Running"
 else
@@ -137,7 +137,7 @@ section "PHASE 2 : APPLICATIONS CI/CD"
 echo ""
 echo "☕ Backend Spring Boot :"
 BACKEND_RUNNING=$(kubectl get pods -n infoline-backend \
-    --no-headers 2>/dev/null | grep -c "Running" || echo "0")
+    --no-headers 2>/dev/null | grep -c "Running" 2>/dev/null); FRONTEND_RUNNING=${FRONTEND_RUNNING:-0}
 if [ "$BACKEND_RUNNING" -ge 1 ]; then
     check_pass "Backend: $BACKEND_RUNNING pod(s) Running"
 else
@@ -156,7 +156,7 @@ fi
 echo ""
 echo "🅰️  Frontend Angular :"
 FRONTEND_RUNNING=$(kubectl get pods -n infoline-frontend \
-    --no-headers 2>/dev/null | grep -c "Running" || echo "0")
+    --no-headers 2>/dev/null | grep -c "Running" 2>/dev/null); FRONTEND_RUNNING=${FRONTEND_RUNNING:-0}
 if [ "$FRONTEND_RUNNING" -ge 1 ]; then
     check_pass "Frontend: $FRONTEND_RUNNING pod(s) Running"
 else
@@ -196,7 +196,7 @@ section "PHASE 3 : ELK STACK SUPERVISION"
 echo ""
 echo "🔍 Elasticsearch :"
 ES_POD=$(kubectl get pods -n elk-stack -l app=elasticsearch \
-    --no-headers 2>/dev/null | grep -c "Running" || echo "0")
+    --no-headers 2>/dev/null | grep -c "Running" 2>/dev/null); FRONTEND_RUNNING=${FRONTEND_RUNNING:-0}
 if [ "$ES_POD" -ge 1 ]; then
     check_pass "Elasticsearch pod: Running"
 
@@ -231,7 +231,7 @@ fi
 echo ""
 echo "📊 Kibana :"
 KIBANA_POD=$(kubectl get pods -n elk-stack -l app=kibana \
-    --no-headers 2>/dev/null | grep -c "Running" || echo "0")
+    --no-headers 2>/dev/null | grep -c "Running" 2>/dev/null); FRONTEND_RUNNING=${FRONTEND_RUNNING:-0}
 if [ "$KIBANA_POD" -ge 1 ]; then
     check_pass "Kibana pod: Running"
 else

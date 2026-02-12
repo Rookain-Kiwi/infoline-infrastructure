@@ -135,3 +135,15 @@ output "ebs_csi_driver_role_arn" {
   description = "ARN du rôle IAM pour EBS CSI Driver"
   value       = module.eks.ebs_csi_driver_role_arn
 }
+# ============================================================================
+# Outputs - Lambda
+# ============================================================================
+output "lambda_function_name" {
+  description = "Nom de la fonction Lambda d'authentification"
+  value       = module.lambda.lambda_function_name
+}
+
+output "lambda_function_url" {
+  description = "URL publique de la fonction Lambda"
+  value       = module.lambda.lambda_function_url
+}
