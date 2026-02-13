@@ -1,9 +1,14 @@
 # ============================================================================
-# INFOLINE - Infrastructure as Code - Phase 1
+# INFOLINE - Infrastructure as Code
 # TP Administrateur Système DevOps
 # ============================================================================
-# Phase 1: VPC + EKS Cluster uniquement
-# Phase 2: Lambda + RDS + ECR (à venir)
+# Infrastructure complète déployée :
+# - VPC multi-AZ (eu-west-3a, eu-west-3b, eu-west-3c)
+# - EKS Cluster (t3.medium, ON_DEMAND)
+# - RDS PostgreSQL 16
+# - ECR (backend + frontend)
+# - Lambda (authentification)
+# ============================================================================
 
 # Module VPC - Réseau de base pour toute l'infrastructure
 module "vpc" {
