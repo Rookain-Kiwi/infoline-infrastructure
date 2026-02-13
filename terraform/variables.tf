@@ -82,12 +82,6 @@ variable "node_max_size" {
   default     = 4
 }
 
-variable "lambda_runtime" {
-  description = "Runtime pour les fonctions Lambda"
-  type        = string
-  default     = "java17"
-}
-
 variable "tags" {
   description = "Tags additionnels pour toutes les ressources"
   type        = map(string)

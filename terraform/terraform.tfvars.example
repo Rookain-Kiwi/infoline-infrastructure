@@ -1,4 +1,4 @@
-# Configuration InfoLine - Optimisé pour Free Tier
+# Configuration InfoLine
 project_name = "infoline"
 environment  = "dev"
 
