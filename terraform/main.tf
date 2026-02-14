@@ -21,6 +21,7 @@ module "vpc" {
   private_subnet_cidrs  = var.private_subnet_cidrs
   public_subnet_cidrs   = var.public_subnet_cidrs
   database_subnet_cidrs = var.database_subnet_cidrs
+  cluster_name          = var.cluster_name
   
   tags = var.tags
 }

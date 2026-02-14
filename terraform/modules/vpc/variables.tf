@@ -38,3 +38,8 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "cluster_name" {
+  description = "Nom du cluster EKS pour les tags des subnets Kubernetes"
+  type        = string
+}

@@ -52,7 +52,7 @@ resource "aws_subnet" "public" {
     {
       Name                                           = "${var.project_name}-${var.environment}-public-${var.availability_zones[count.index]}"
       "kubernetes.io/role/elb"                       = "1"
-      "kubernetes.io/cluster/infoline-eks-cluster" = "shared"
+      "kubernetes.io/cluster/${var.cluster_name}"    = "shared"
     }
   )
 }
@@ -69,7 +69,7 @@ resource "aws_subnet" "private" {
     {
       Name                                           = "${var.project_name}-${var.environment}-private-${var.availability_zones[count.index]}"
       "kubernetes.io/role/internal-elb"              = "1"
-      "kubernetes.io/cluster/infoline-eks-cluster" = "shared"
+      "kubernetes.io/cluster/${var.cluster_name}"    = "shared"
     }
   )
 }
