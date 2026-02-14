@@ -198,8 +198,10 @@ resource "aws_eks_node_group" "main" {
   subnet_ids      = var.private_subnet_ids
 
   instance_types = var.node_instance_types
-  # ON_DEMAND provoquait un faux positif lors de la création de l'aws_eks_node_group et SPOT est plus adapté au Free Tier
-  # Malheureusement, SPOT et t3.medium ne sont pas compatibles: passage en compte AWS payant
+  # SPOT testé mais incompatible : indisponibilité de capacité en eu-west-3
+  # et restrictions du compte AWS Education. Passage en ON_DEMAND obligatoire
+  # après upgrade du compte (sortie Free Tier).
+capacity_type = "ON_DEMAND"
   capacity_type  = "ON_DEMAND"
 
   scaling_config {
