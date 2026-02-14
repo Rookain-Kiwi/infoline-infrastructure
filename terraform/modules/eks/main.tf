@@ -201,7 +201,7 @@ resource "aws_eks_node_group" "main" {
   # SPOT testé mais incompatible : indisponibilité de capacité en eu-west-3
   # et restrictions du compte AWS Education. Passage en ON_DEMAND obligatoire
   # après upgrade du compte (sortie Free Tier).
-capacity_type = "ON_DEMAND"
+
   capacity_type  = "ON_DEMAND"
 
   scaling_config {
