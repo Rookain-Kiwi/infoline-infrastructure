@@ -2,7 +2,7 @@
 # RDS PostgreSQL Module - InfoLine Project
 # ==============================================================================
 # Module pour déployer une instance RDS PostgreSQL optimisée pour le budget
-# AWS Education Account :
+# AWS Free Tier Account :
 #   Instance  : db.t3.micro (2 vCPU, 1GB RAM) — inclus dans le Free Tier
 #   Storage   : 20GB gp2 — dans les limites Free Tier
 #   Multi-AZ  : Désactivé — réplication synchrone non nécessaire en dev,
