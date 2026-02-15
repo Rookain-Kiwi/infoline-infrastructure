@@ -1,458 +1,88 @@
-# IAM Role pour le Cluster EKS
-resource "aws_iam_role" "cluster" {
-  name = "${var.cluster_name}-cluster-role"
+# ==============================================================================
+# RDS Security Group - InfoLine Project
+# ==============================================================================
+# Contrôle l'accès réseau à l'instance RDS PostgreSQL.
+# Principe du moindre privilège : seul le port 5432 depuis les sources
+# autorisées est ouvert en entrée — aucun accès public, aucun autre port.
+#
+# Séparation des règles en ressources distinctes (aws_security_group_rule)
+# plutôt qu'en blocs inline : permet d'ajouter/supprimer des règles
+# individuellement sans recréer le security group entier.
+# ==============================================================================
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
-      Principal = {
-        Service = "eks.amazonaws.com"
-      }
-    }]
-  })
-
-  tags = merge(
-    var.tags,
-    {
-      Name = "${var.cluster_name}-cluster-role"
-    }
-  )
-}
-
-# Attacher les policies nécessaires au rôle du cluster
-resource "aws_iam_role_policy_attachment" "cluster_AmazonEKSClusterPolicy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-  role       = aws_iam_role.cluster.name
-}
-
-resource "aws_iam_role_policy_attachment" "cluster_AmazonEKSVPCResourceController" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSVPCResourceController"
-  role       = aws_iam_role.cluster.name
-}
-
-# Security Group pour le Cluster EKS
-resource "aws_security_group" "cluster" {
-  name        = "${var.cluster_name}-cluster-sg"
-  description = "Security group for EKS cluster control plane"
+# ------------------------------------------------------------------------------
+# Security Group RDS
+# ------------------------------------------------------------------------------
+# name_prefix (avec tiret final) : AWS génère un suffixe unique pour éviter
+# les conflits de noms lors du cycle destroy/recreate journalier.
+#
+# lifecycle.create_before_destroy = true : lors d'un remplacement du SG
+# (changement de vpc_id ou name_prefix), le nouveau SG est créé avant que
+# l'ancien soit détruit — évite une interruption de connectivité pour RDS.
+# ------------------------------------------------------------------------------
+resource "aws_security_group" "rds" {
+  name_prefix = "${var.project_name}-${var.environment}-rds-"
+  description = "Security group for RDS PostgreSQL instance"
   vpc_id      = var.vpc_id
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-rds-sg"
+    Environment = var.environment
+    Project     = var.project_name
+    ManagedBy   = "Terraform"
   }
 
-  tags = merge(
-    var.tags,
-    {
-      Name = "${var.cluster_name}-cluster-sg"
-    }
-  )
-}
-
-# Règle pour permettre la communication avec les worker nodes
-resource "aws_security_group_rule" "cluster_ingress_workstation_https" {
-  description       = "Allow workstation to communicate with the cluster API Server"
-  type              = "ingress"
-  from_port         = 443
-  to_port           = 443
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.cluster.id
-}
-
-# Cluster EKS
-resource "aws_eks_cluster" "main" {
-  name     = var.cluster_name
-  version  = var.cluster_version
-  role_arn = aws_iam_role.cluster.arn
-
-  vpc_config {
-    subnet_ids              = concat(var.private_subnet_ids, var.public_subnet_ids)
-    endpoint_private_access = true
-    endpoint_public_access  = true
-    security_group_ids      = [aws_security_group.cluster.id]
+  lifecycle {
+    create_before_destroy = true
   }
-
-  enabled_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
-
-  tags = merge(
-    var.tags,
-    {
-      Name = var.cluster_name
-    }
-  )
-
-  depends_on = [
-    aws_iam_role_policy_attachment.cluster_AmazonEKSClusterPolicy,
-    aws_iam_role_policy_attachment.cluster_AmazonEKSVPCResourceController,
-  ]
 }
 
-# IAM Role pour les Worker Nodes
-resource "aws_iam_role" "node" {
-  name = "${var.cluster_name}-node-role"
+# ------------------------------------------------------------------------------
+# Règles Ingress
+# ------------------------------------------------------------------------------
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
-      Principal = {
-        Service = "ec2.amazonaws.com"
-      }
-    }]
-  })
-
-  tags = merge(
-    var.tags,
-    {
-      Name = "${var.cluster_name}-node-role"
-    }
-  )
-}
-
-# Attacher les policies nécessaires aux worker nodes
-resource "aws_iam_role_policy_attachment" "node_AmazonEKSWorkerNodePolicy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-  role       = aws_iam_role.node.name
-}
-
-resource "aws_iam_role_policy_attachment" "node_AmazonEKS_CNI_Policy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  role       = aws_iam_role.node.name
-}
-
-resource "aws_iam_role_policy_attachment" "node_AmazonEC2ContainerRegistryReadOnly" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-  role       = aws_iam_role.node.name
-}
-
-# Policy supplémentaire pour CloudWatch Logs
-resource "aws_iam_role_policy_attachment" "node_CloudWatchAgentServerPolicy" {
-  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
-  role       = aws_iam_role.node.name
-}
-
-# Security Group pour les Worker Nodes
-resource "aws_security_group" "node" {
-  name        = "${var.cluster_name}-node-sg"
-  description = "Security group for all nodes in the cluster"
-  vpc_id      = var.vpc_id
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = merge(
-    var.tags,
-    {
-      Name                                        = "${var.cluster_name}-node-sg"
-      "kubernetes.io/cluster/${var.cluster_name}" = "owned"
-    }
-  )
-}
-
-# Règles de sécurité pour les nodes
-resource "aws_security_group_rule" "node_ingress_self" {
-  description              = "Allow nodes to communicate with each other"
+# Accès PostgreSQL (5432) depuis les worker nodes EKS uniquement.
+# source_security_group_id = var.eks_security_group_id : référence le SG des
+# nodes EKS — seuls les pods tournant sur ces nodes peuvent atteindre RDS.
+# Plus restrictif qu'un CIDR : si un node est supprimé, son accès disparaît
+# automatiquement avec lui.
+resource "aws_security_group_rule" "rds_ingress_from_eks" {
   type                     = "ingress"
-  from_port                = 0
-  to_port                  = 65535
-  protocol                 = "-1"
-  security_group_id        = aws_security_group.node.id
-  source_security_group_id = aws_security_group.node.id
-}
-
-resource "aws_security_group_rule" "node_ingress_cluster" {
-  description              = "Allow worker Kubelets and pods to receive communication from the cluster control plane"
-  type                     = "ingress"
-  from_port                = 1025
-  to_port                  = 65535
+  from_port                = 5432
+  to_port                  = 5432
   protocol                 = "tcp"
-  security_group_id        = aws_security_group.node.id
-  source_security_group_id = aws_security_group.cluster.id
+  source_security_group_id = var.eks_security_group_id
+  security_group_id        = aws_security_group.rds.id
+  description              = "Allow PostgreSQL access from EKS cluster"
 }
 
-resource "aws_security_group_rule" "cluster_ingress_node_https" {
-  description              = "Allow pods to communicate with the cluster API Server"
-  type                     = "ingress"
-  from_port                = 443
-  to_port                  = 443
-  protocol                 = "tcp"
-  security_group_id        = aws_security_group.cluster.id
-  source_security_group_id = aws_security_group.node.id
-}
-
-# Node Group pour les Worker Nodes
-resource "aws_eks_node_group" "main" {
-  cluster_name    = aws_eks_cluster.main.name
-  node_group_name = "${var.cluster_name}-node-group"
-  node_role_arn   = aws_iam_role.node.arn
-  subnet_ids      = var.private_subnet_ids
-
-  instance_types = var.node_instance_types
-  # SPOT testé mais incompatible : indisponibilité de capacité en eu-west-3
-  # et restrictions du compte AWS Education. Passage en ON_DEMAND obligatoire
-  # après upgrade du compte (sortie Free Tier).
-
-  capacity_type  = "ON_DEMAND"
-
-  scaling_config {
-    desired_size = var.node_desired_size
-    max_size     = var.node_max_size
-    min_size     = var.node_min_size
-  }
-
-  update_config {
-    max_unavailable = 1
-  }
-
-  labels = {
-    role = "general"
-  }
-
-  tags = merge(
-    var.tags,
-    {
-      Name = "${var.cluster_name}-node-group"
-    }
-  )
-
-  depends_on = [
-    aws_iam_role_policy_attachment.node_AmazonEKSWorkerNodePolicy,
-    aws_iam_role_policy_attachment.node_AmazonEKS_CNI_Policy,
-    aws_iam_role_policy_attachment.node_AmazonEC2ContainerRegistryReadOnly,
-  ]
-}
-
-# OIDC Provider pour IRSA (IAM Roles for Service Accounts)
-data "tls_certificate" "cluster" {
-  url = aws_eks_cluster.main.identity[0].oidc[0].issuer
-}
-
-resource "aws_iam_openid_connect_provider" "cluster" {
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = [data.tls_certificate.cluster.certificates[0].sha1_fingerprint]
-  url             = aws_eks_cluster.main.identity[0].oidc[0].issuer
-
-  tags = merge(
-    var.tags,
-    {
-      Name = "${var.cluster_name}-oidc-provider"
-    }
-  )
-}
-
-# ============================================================================
-# EBS CSI Driver IAM Role et Policy
-# ============================================================================
-
-# Policy IAM pour EBS CSI Driver
-data "aws_iam_policy_document" "ebs_csi_driver" {
-  statement {
-    actions = [
-      "ec2:CreateSnapshot",
-      "ec2:AttachVolume",
-      "ec2:DetachVolume",
-      "ec2:ModifyVolume",
-      "ec2:DescribeAvailabilityZones",
-      "ec2:DescribeInstances",
-      "ec2:DescribeSnapshots",
-      "ec2:DescribeTags",
-      "ec2:DescribeVolumes",
-      "ec2:DescribeVolumesModifications"
-    ]
-    resources = ["*"]
-  }
-
-  statement {
-    actions = [
-      "ec2:CreateTags"
-    ]
-    resources = [
-      "arn:aws:ec2:*:*:volume/*",
-      "arn:aws:ec2:*:*:snapshot/*"
-    ]
-    condition {
-      test     = "StringEquals"
-      variable = "ec2:CreateAction"
-      values = [
-        "CreateVolume",
-        "CreateSnapshot"
-      ]
-    }
-  }
-
-  statement {
-    actions = [
-      "ec2:DeleteTags"
-    ]
-    resources = [
-      "arn:aws:ec2:*:*:volume/*",
-      "arn:aws:ec2:*:*:snapshot/*"
-    ]
-  }
-
-  statement {
-    actions = [
-      "ec2:CreateVolume"
-    ]
-    resources = ["*"]
-    condition {
-      test     = "StringLike"
-      variable = "aws:RequestTag/ebs.csi.aws.com/cluster"
-      values   = ["true"]
-    }
-  }
-
-  statement {
-    actions = [
-      "ec2:CreateVolume"
-    ]
-    resources = ["*"]
-    condition {
-      test     = "StringLike"
-      variable = "aws:RequestTag/CSIVolumeName"
-      values   = ["*"]
-    }
-  }
-
-  statement {
-    actions = [
-      "ec2:DeleteVolume"
-    ]
-    resources = ["*"]
-    condition {
-      test     = "StringLike"
-      variable = "ec2:ResourceTag/ebs.csi.aws.com/cluster"
-      values   = ["true"]
-    }
-  }
-
-  statement {
-    actions = [
-      "ec2:DeleteVolume"
-    ]
-    resources = ["*"]
-    condition {
-      test     = "StringLike"
-      variable = "ec2:ResourceTag/CSIVolumeName"
-      values   = ["*"]
-    }
-  }
-
-  statement {
-    actions = [
-      "ec2:DeleteVolume"
-    ]
-    resources = ["*"]
-    condition {
-      test     = "StringLike"
-      variable = "ec2:ResourceTag/kubernetes.io/created-for/pvc/name"
-      values   = ["*"]
-    }
-  }
-
-  statement {
-    actions = [
-      "ec2:DeleteSnapshot"
-    ]
-    resources = ["*"]
-    condition {
-      test     = "StringLike"
-      variable = "ec2:ResourceTag/CSIVolumeSnapshotName"
-      values   = ["*"]
-    }
-  }
-
-  statement {
-    actions = [
-      "ec2:DeleteSnapshot"
-    ]
-    resources = ["*"]
-    condition {
-      test     = "StringLike"
-      variable = "ec2:ResourceTag/ebs.csi.aws.com/cluster"
-      values   = ["true"]
-    }
-  }
-}
-
-# IAM Role pour EBS CSI Driver avec IRSA
-resource "aws_iam_role" "ebs_csi_driver" {
-  name = "${var.cluster_name}-ebs-csi-driver"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action = "sts:AssumeRoleWithWebIdentity"
-      Effect = "Allow"
-      Principal = {
-        Federated = aws_iam_openid_connect_provider.cluster.arn
-      }
-      Condition = {
-        StringEquals = {
-          "${replace(aws_iam_openid_connect_provider.cluster.url, "https://", "")}:sub" = "system:serviceaccount:kube-system:ebs-csi-controller-sa"
-          "${replace(aws_iam_openid_connect_provider.cluster.url, "https://", "")}:aud" = "sts.amazonaws.com"
-        }
-      }
-    }]
-  })
-
-  tags = merge(
-    var.tags,
-    {
-      Name = "${var.cluster_name}-ebs-csi-driver-role"
-    }
-  )
-}
-
-# Attacher la policy au role
-resource "aws_iam_role_policy" "ebs_csi_driver" {
-  name   = "${var.cluster_name}-ebs-csi-driver-policy"
-  role   = aws_iam_role.ebs_csi_driver.id
-  policy = data.aws_iam_policy_document.ebs_csi_driver.json
-}
-
-# Add-on EBS CSI Driver (désactivé - installé via Helm (timeout à chaque fois))
-# resource "aws_eks_addon" "ebs_csi_driver" {
-#   cluster_name = aws_eks_cluster.main.name
-#   addon_name   = "aws-ebs-csi-driver"
-#   depends_on = [
-#     aws_eks_node_group.main
-#   ]
+# Accès PostgreSQL depuis Lambda (désactivé).
+# Lambda InfoLine est déployée hors VPC (Function URL publique) — elle
+# n'a pas besoin d'accès direct à RDS (authentification JWT uniquement,
+# pas d'accès direct à la base de données).
+# À réactiver si, un jour, Lambda est migrée dans le VPC et nécessite un accès DB.
+# resource "aws_security_group_rule" "rds_ingress_from_lambda" {
+#   type                     = "ingress"
+#   from_port                = 5432
+#   to_port                  = 5432
+#   protocol                 = "tcp"
+#   source_security_group_id = var.lambda_security_group_id
+#   security_group_id        = aws_security_group.rds.id
+#   description              = "Allow PostgreSQL access from Lambda functions"
 # }
 
-# Add-on CoreDNS
-resource "aws_eks_addon" "coredns" {
-  cluster_name = aws_eks_cluster.main.name
-  addon_name   = "coredns"
-  depends_on = [
-    aws_eks_node_group.main
-  ]
-}
+# ------------------------------------------------------------------------------
+# Règles Egress
+# ------------------------------------------------------------------------------
 
-# Add-on kube-proxy
-resource "aws_eks_addon" "kube_proxy" {
-  cluster_name = aws_eks_cluster.main.name
-  addon_name   = "kube-proxy"
-  depends_on = [
-    aws_eks_node_group.main
-  ]
-}
-
-# Add-on VPC CNI
-resource "aws_eks_addon" "vpc_cni" {
-  cluster_name = aws_eks_cluster.main.name
-  addon_name   = "vpc-cni"
-  depends_on = [
-    aws_eks_node_group.main
-  ]
+# Trafic sortant entièrement ouvert : RDS peut initier des connexions sortantes
+# vers Internet si nécessaire (mises à jour de certificats SSL, NTP, etc.).
+resource "aws_security_group_rule" "rds_egress_all" {
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.rds.id
+  description       = "Allow all outbound traffic"
 }

@@ -1,11 +1,24 @@
 # ==============================================================================
 # RDS Security Group - InfoLine Project
 # ==============================================================================
-# Security Group pour contrôler l'accès à l'instance RDS PostgreSQL
+# Contrôle l'accès réseau à l'instance RDS PostgreSQL.
+# Principe du moindre privilège : seul le port 5432 depuis les sources
+# autorisées est ouvert en entrée — aucun accès public, aucun autre port.
+#
+# Séparation des règles en ressources distinctes (aws_security_group_rule)
+# plutôt qu'en blocs inline : permet d'ajouter/supprimer des règles
+# individuellement sans recréer le security group entier.
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
-# RDS Security Group
+# Security Group RDS
+# ------------------------------------------------------------------------------
+# name_prefix (avec tiret final) : AWS génère un suffixe unique pour éviter
+# les conflits de noms lors du cycle destroy/recreate journalier.
+#
+# lifecycle.create_before_destroy = true : lors d'un remplacement du SG
+# (changement de vpc_id ou name_prefix), le nouveau SG est créé avant que
+# l'ancien soit détruit — évite une interruption de connectivité pour RDS.
 # ------------------------------------------------------------------------------
 resource "aws_security_group" "rds" {
   name_prefix = "${var.project_name}-${var.environment}-rds-"
@@ -25,10 +38,14 @@ resource "aws_security_group" "rds" {
 }
 
 # ------------------------------------------------------------------------------
-# Ingress Rules
+# Règles Ingress
 # ------------------------------------------------------------------------------
 
-# Règle 1: Autoriser le trafic PostgreSQL depuis le cluster EKS
+# Accès PostgreSQL (5432) depuis les worker nodes EKS uniquement.
+# source_security_group_id = var.eks_security_group_id : référence le SG des
+# nodes EKS — seuls les pods tournant sur ces nodes peuvent atteindre RDS.
+# Plus restrictif qu'un CIDR : si un node est supprimé, son accès disparaît
+# automatiquement avec lui.
 resource "aws_security_group_rule" "rds_ingress_from_eks" {
   type                     = "ingress"
   from_port                = 5432
@@ -39,8 +56,11 @@ resource "aws_security_group_rule" "rds_ingress_from_eks" {
   description              = "Allow PostgreSQL access from EKS cluster"
 }
 
-# Règle 2: Autoriser le trafic PostgreSQL depuis Lambda (optionnel)
-# Décommenter si Lambda est dans un VPC
+# Accès PostgreSQL depuis Lambda (désactivé).
+# Lambda InfoLine est déployée hors VPC (Function URL publique) — elle
+# n'a pas besoin d'accès direct à RDS (authentification JWT uniquement,
+# pas d'accès base de données).
+# À réactiver si Lambda est, un jour, migrée dans le VPC et nécessite alors un accès DB.
 # resource "aws_security_group_rule" "rds_ingress_from_lambda" {
 #   type                     = "ingress"
 #   from_port                = 5432
@@ -52,10 +72,11 @@ resource "aws_security_group_rule" "rds_ingress_from_eks" {
 # }
 
 # ------------------------------------------------------------------------------
-# Egress Rules
+# Règles Egress
 # ------------------------------------------------------------------------------
 
-# Règle de sortie: Autoriser tout le trafic sortant (requis pour updates, etc.)
+# Trafic sortant entièrement ouvert : RDS peut initier des connexions sortantes
+# vers Internet si nécessaire (mises à jour de certificats SSL, NTP, etc.).
 resource "aws_security_group_rule" "rds_egress_all" {
   type              = "egress"
   from_port         = 0
