@@ -1,119 +1,139 @@
-# InfoLine - Infrastructure
+# infoline-infrastructure
 
-Infrastructure as Code.
+Infrastructure as Code du projet InfoLine — ECF DevOps (Studi).
 
-**TP Administrateur Système DevOps - Studi**
+Déploie l'ensemble de l'infrastructure AWS via Terraform et les manifests Kubernetes
+associés (applications, supervision ELK).
 
-## 📋 Vue d'ensemble du projet
+## Repositories du projet
 
-InfoLine est déployé sur AWS avec une architecture cloud-native moderne, utilisant une approche multi-repositories pour une séparation claire des responsabilités.
-
-### Repositories du projet
-
-- **[infoline-infrastructure](https://github.com/Rookain-Kiwi/infoline-infrastructure)** (ce repo) : Infrastructure as Code (Terraform, Kubernetes)
+- **[infoline-infrastructure](https://github.com/Rookain-Kiwi/infoline-infrastructure)** (ce repo) : Infrastructure as Code (Terraform, Kubernetes, scripts)
 - **[infoline-backend](https://github.com/Rookain-Kiwi/infoline-backend)** : API REST Java Spring Boot
 - **[infoline-frontend](https://github.com/Rookain-Kiwi/infoline-frontend)** : Application web Angular
 
-## 🏗️ Architecture
+## Stack technique
 
-### Stack Technique
+| Composant         | Technologie                        |
+|-------------------|------------------------------------|
+| Cloud             | AWS eu-west-3 (Paris)              |
+| IaC               | Terraform                          |
+| Orchestration     | Amazon EKS (Kubernetes)            |
+| Nodes             | EC2 t3.medium ON_DEMAND            |
+| Base de données   | Amazon RDS PostgreSQL 16           |
+| Registry          | Amazon ECR                         |
+| Serverless        | AWS Lambda Node.js 20.x            |
+| Supervision       | ELK Stack (Elasticsearch + Kibana) |
+| CI/CD             | GitHub Actions                     |
 
-- **Cloud Provider** : AWS (région eu-west-3)
-- **Orchestration** : Amazon EKS (Kubernetes)
-- **IaC** : Terraform
-- **CI/CD** : GitHub Actions
-- **Serverless** : AWS Lambda (authentification)
-- **Base de données** : Amazon RDS PostgreSQL
-- **Container Registry** : Amazon ECR
-- **Monitoring** : ELK Stack (Elasticsearch, Logstash, Kibana)
+## Architecture réseau
 
-### Infrastructure déployée
+VPC `10.0.0.0/16` déployé sur 3 Availability Zones (eu-west-3a/b/c) :
 
-- **VPC multi-AZ** avec subnets publics et privés
-- **EKS Cluster** avec namespaces `dev` et `prod`
-- **Lambda** pour l'authentification utilisateur
-- **RDS PostgreSQL** (à venir)
-- **ELK Stack** pour la supervision (à venir)
+- **Subnets publics** `10.0.101-103.0/24` — LoadBalancers Kubernetes, NAT Gateways
+- **Subnets privés** `10.0.1-3.0/24` — Worker nodes EKS (backend, frontend, ELK)
+- **Subnets database** `10.0.201-203.0/24` — RDS PostgreSQL (isolés, pas de route Internet)
 
-## 📁 Structure du repository
+## Structure du repository
+
 ```
 infoline-infrastructure/
-├── terraform/              # Infrastructure as Code
-│   ├── modules/
-│   │   ├── vpc/           # Configuration réseau
-│   │   └── eks/           # Cluster Kubernetes
-│   ├── main.tf
-│   ├── variables.tf
-│   └── outputs.tf
-├── kubernetes/            # Manifests Kubernetes
-│   └── namespaces/       # Namespaces dev/prod
-├── scripts/              # Scripts d'automatisation
-│   ├── startup-infra.sh  # Création infrastructure
-│   ├── shutdown-infra.sh # Destruction infrastructure
-│   └── shutdown-verif.sh # Vérification destruction
-└── docs/                 # Documentation technique
+├── terraform/
+│   ├── main.tf                  # Orchestration des modules
+│   ├── variables.tf             # Paramètres configurables
+│   ├── outputs.tf               # Valeurs exposées post-déploiement
+│   ├── provider.tf              # Providers AWS, Kubernetes, Helm
+│   ├── terraform.tfvars.example # Exemple de configuration (ne pas versionner tfvars)
+│   └── modules/
+│       ├── vpc/                 # Réseau 3 tiers multi-AZ
+│       ├── eks/                 # Cluster Kubernetes + IRSA + EBS CSI
+│       ├── rds/                 # PostgreSQL 16 (db.t3.micro)
+│       ├── ecr/                 # Registres Docker backend et frontend
+│       └── lambda/              # Fonction d'authentification serverless
+├── kubernetes/
+│   ├── namespaces/              # Namespaces applicatifs (infoline-backend, infoline-frontend)
+│   └── elk-stack/
+│       ├── namespace/           # Namespace elk-stack
+│       ├── elasticsearch/       # StatefulSet + Service + PVC
+│       └── kibana/              # Deployment + Service + ConfigMap
+└── scripts/
+    ├── startup-infra.sh         # Recréation complète
+    ├── shutdown-infra.sh        # Destruction complète
+    ├── shutdown-verif.sh        # Vérification post-destruction
+    └── validate-infra.sh        # Validation de l'état après recréation
 ```
 
-## 💰 Gestion des coûts AWS
+## Prérequis
 
-Le projet utilise AWS Education credits avec une stratégie de gestion stricte des coûts :
+- Terraform >= 1.0
+- AWS CLI configuré (`aws configure`)
+- kubectl
+- Helm >= 3
+- Accès AWS avec crédits suffisants (compte Free Tier + crédits promotionnels)
 
-- **Instances EKS** : t3.micro (Free Tier compatible)
-- **Cycle quotidien** : Destruction automatique le soir, recréation le matin
-- **Économie estimée** : ~67 USD sur la durée du projet
+## Déploiement
 
-### Scripts de gestion
+### Premier déploiement
+
 ```bash
-# Destruction de l'infrastructure (5-8 min)
-./scripts/shutdown-infra.sh
+# 1. Copier et renseigner les variables sensibles
+cp terraform/terraform.tfvars.example terraform/terraform.tfvars
+# Renseigner db_password dans terraform.tfvars (NE JAMAIS COMMITER CE FICHIER)
 
-# Recréation de l'infrastructure (12-15 min)
+# 2. Initialiser et déployer
+cd terraform
+terraform init
+terraform plan -out=tfplan
+terraform apply tfplan
+
+# 3. Configurer kubectl
+aws eks update-kubeconfig --region eu-west-3 --name infoline-eks-cluster
+
+# 4. Installer l'EBS CSI Driver via Helm
+EBS_ROLE_ARN=$(terraform output -raw ebs_csi_driver_role_arn)
+helm repo add aws-ebs-csi-driver https://kubernetes-sigs.github.io/aws-ebs-csi-driver
+helm upgrade --install aws-ebs-csi-driver aws-ebs-csi-driver/aws-ebs-csi-driver \
+  --namespace kube-system \
+  --set controller.serviceAccount.annotations."eks\.amazonaws\.com/role-arn"="$EBS_ROLE_ARN"
+
+# 5. Créer les namespaces
+kubectl apply -f kubernetes/namespaces/
+kubectl create namespace elk-stack
+
+# 6. Déployer la stack ELK
+kubectl apply -f kubernetes/elk-stack/elasticsearch/
+kubectl apply -f kubernetes/elk-stack/kibana/
+```
+
+### Cycle quotidien (gestion des coûts)
+
+Le projet utilise un cycle destroy/recreate journalier pour limiter les coûts AWS
+
+```bash
+# Matin — recréation
 ./scripts/startup-infra.sh
 
-# Vérification de la destruction complète
+# Soir — destruction
+./scripts/shutdown-infra.sh
+
+# Vérification post-destruction
 ./scripts/shutdown-verif.sh
 ```
 
-## 🚀 Déploiement
+### Validation de l'infrastructure
 
-### Prérequis
-
-- Terraform >= 1.0
-- AWS CLI configuré
-- kubectl
-- Accès AWS avec crédits suffisants
-
-### Déploiement initial
 ```bash
-cd terraform
-terraform init
-terraform plan
-terraform apply
+./scripts/validate-infra.sh
 ```
 
-### Configuration kubectl
-```bash
-aws eks update-kubeconfig --region eu-west-3 --name infoline-eks-cluster
-kubectl get nodes
-kubectl get namespaces
-```
+Exécute 23 checks couvrant : nodes EKS, namespaces, EBS CSI Driver, RDS, ECR,
+IAM roles, pods backend/frontend, stack ELK, LoadBalancer Kibana.
 
-## 🔄 Workflow Git
+## Workflow Git
 
-- **main** : branche stable, déployée en production
-- **develop** : branche de développement
-- **feature/*** : branches de fonctionnalités
+- `main` — branche stable
+- `develop` — développement actif
+- `feature/*` — fonctionnalités en cours
 
-Tous les commits suivent la convention [Conventional Commits](https://www.conventionalcommits.org/).
+## Auteur
 
-## 📚 Documentation
-
-- [Architecture détaillée](docs/) (à venir)
-- [Guide de gestion des coûts](docs/) (à venir)
-- [Procédures de déploiement](docs/) (à venir)
-
-## 👤 Auteur
-
-**Loïc KERGOAT** - Promotion THERY  
-TP Administrateur Système DevOps - Studi  
-Janvier 2026
+Loïc KERGOAT — Promotion THERY
