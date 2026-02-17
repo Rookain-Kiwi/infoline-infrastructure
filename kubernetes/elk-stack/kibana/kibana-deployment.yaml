@@ -1,3 +1,9 @@
+# ==============================================================================
+# Deployment - Kibana
+# ==============================================================================
+# Déploie Kibana et le connecte à Elasticsearch via le Service ClusterIP.
+# L'interface web est exposée à l'extérieur du cluster par kibana-service.yaml
+# ==============================================================================
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,6 +31,10 @@ spec:
           name: http
           protocol: TCP
         env:
+        # ELASTICSEARCH_HOSTS en variable d'environnement prend la priorité
+        # sur la valeur elasticsearch.hosts définie dans kibana-configmap.yaml.
+        # Les deux doivent pointer vers la même URL — toute désynchronisation
+        # provoque une erreur ENOTFOUND au démarrage de Kibana.
         - name: ELASTICSEARCH_HOSTS
           value: "http://elasticsearch:9200"
         - name: SERVER_NAME
