@@ -34,14 +34,16 @@ VPC_COUNT=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=*infoline*" --
 [ "$VPC_COUNT" = "0" ] && echo "supprimé" || echo "ENCORE PRESENT ($VPC_COUNT)"
 
 # EKS
+# Nom du cluster corrigé : infoline-eks-cluster (était infoline-dev-cluster, ancienne nomenclature)
 echo -n "  Cluster EKS        : "
-EKS_STATUS=$(aws eks describe-cluster --name infoline-dev-cluster --query 'cluster.status' --output text 2>/dev/null || echo "NOT_FOUND")
+EKS_STATUS=$(aws eks describe-cluster --name infoline-eks-cluster --query 'cluster.status' --output text 2>/dev/null || echo "NOT_FOUND")
 [ "$EKS_STATUS" = "NOT_FOUND" ] && echo "supprimé" || echo "ENCORE PRESENT (status: $EKS_STATUS)"
 
 # EC2
+# Filtre sur le nom de cluster corrigé pour retrouver les worker nodes associés
 echo -n "  Instances EC2      : "
 EC2_COUNT=$(aws ec2 describe-instances \
-    --filters "Name=tag:eks:cluster-name,Values=infoline-dev-cluster" \
+    --filters "Name=tag:eks:cluster-name,Values=infoline-eks-cluster" \
               "Name=instance-state-name,Values=running,pending" \
     --query 'Reservations[].Instances | length(@)' \
     --output text 2>/dev/null || echo "0")
