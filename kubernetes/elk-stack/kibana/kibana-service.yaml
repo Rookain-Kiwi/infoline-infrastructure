@@ -1,3 +1,8 @@
+# ==============================================================================
+# Service - Kibana
+# ==============================================================================
+# Expose Kibana via un LoadBalancer AWS (ELB) pour l'accès depuis le navigateur.
+# ==============================================================================
 apiVersion: v1
 kind: Service
 metadata:
@@ -7,7 +12,7 @@ metadata:
     app: kibana
     component: monitoring
 spec:
-  type: LoadBalancer
+  type: LoadBalancer  # Provisionne un ELB AWS — accessible via l'URL affichée dans EXTERNAL-IP
   ports:
   - port: 5601
     targetPort: 5601
